@@ -1,5 +1,6 @@
 """
 Five Distinct Message Communication Implementations - Python Version
+Updated with improved RLE implementation
 Each implementation addresses one specific requirement from the assignment
 """
 
@@ -90,93 +91,134 @@ class CommunicationNetwork:
         return message.metadata['message_id']
 
 # ===============================
-# IMPLEMENTATION 1: RUN-LENGTH ENCODING
+# UPDATED IMPLEMENTATION 1: RUN-LENGTH ENCODING
 # ===============================
+
+def run_length_encoding(data):
+    """
+    Your updated RLE function with encoding and decoding capabilities
+    """
+    # --- Encoding Section ---
+    if isinstance(data, str):  # Check if input is a string.
+        encoded_string = []  # A list where we'll build the compressed output.
+        count = 1  # Keep track of how many times the current character repeats.
+        
+        # To loop through each character in the string by index.
+        for i in range(len(data)):
+            # A streak of repeating characters.
+            if i + 1 < len(data) and data[i] == data[i + 1] and count < 9:
+                count += 1
+            # The streak ended (i.e., we hit a different character, reached the last character, or reached the max).
+            else:
+                encoded_string.append(str(count) + data[i])
+                count = 1
+        
+        compressed = ''.join(encoded_string)  # Join the compressed parts into a single string.
+        
+        # Create metadata to store information about the compression.
+        metadata = {
+            "encoding": "RLE",
+            "original_length": len(data),
+            "compressed_length": len(compressed)
+        }
+        
+        return {
+            "metadata": metadata,
+            "message_body": compressed
+        }
+    
+    # --- Decoding Section ---
+    elif isinstance(data, dict) and "metadata" in data and "message_body" in data:
+        # Check if input is a dict that contains both "metadata" and "message_body".
+        # Extract the compressed message and metadata from the input dictionary.
+        compressed = data["message_body"]
+        metadata = data["metadata"]
+        
+        decoded = []  # A list where we build the uncompressed message.
+        i = 0  # The index for looping through the compressed string.
+        
+        # Loop through the compressed string two characters at a time (because e.g., "4a").
+        while i < len(compressed):
+            count = int(compressed[i])
+            char = compressed[i + 1]
+            decoded.append(char * count)
+            i += 2
+        
+        decoded_message = ''.join(decoded)  # Join the decoded parts into a single string.
+        
+        # Check if the decoded message length matches the original length stored in metadata.
+        # If it does not, raise an error.
+        if len(decoded_message) != metadata["original_length"]:
+            raise ValueError("Decoded message length does not match metadata.")
+        
+        return decoded_message
+    
+    # Error handling for invalid input types (i.e., it's neither a string or dict).
+    else:
+        raise TypeError("Invalid input type. Must be a string (for encoding) or a dict (for decoding).")
 
 class RunLengthEncodingImplementation:
     """
     IMPLEMENTATION 1: Send compressed messages using run-length encoding
     Requirement: "The metadata should indicate that the message is run-length encoded"
+    Updated with your improved RLE algorithm
     """
 
     @staticmethod
     def encode(message):
         """
-        Encodes message using run-length encoding
+        Encodes message using your updated run-length encoding function
         Time Complexity: O(n) where n is message length
-        Example: "aaaabbbb" -> "4a4b"
         """
         if not message:
             return ''
-
-        encoded = ''
-        count = 1
-        current_char = message[0]
-
-        for i in range(1, len(message)):
-            if message[i] == current_char:
-                count += 1
-            else:
-                encoded += f'{count}{current_char}' if count > 1 else current_char
-                current_char = message[i]
-                count = 1
-
-        encoded += f'{count}{current_char}' if count > 1 else current_char
-        return encoded
+        
+        result = run_length_encoding(message)
+        return result["message_body"]
 
     @staticmethod
-    def decode(encoded):
+    def decode(encoded_data):
         """
-        Decodes run-length encoded message
-        Time Complexity: O(m + k) where m is encoded length, k is decoded length
+        Decodes run-length encoded message using your updated function
         """
-        if not encoded:
+        if not encoded_data:
             return ''
-
-        decoded = ''
-        i = 0
-
-        while i < len(encoded):
-            count = ''
-            
-            while i < len(encoded) and encoded[i].isdigit():
-                count += encoded[i]
-                i += 1
-
-            count = int(count) if count else 1
-
-            if i < len(encoded):
-                decoded += encoded[i] * count
-                i += 1
-
-        return decoded
+        
+        return run_length_encoding(encoded_data)
 
     @staticmethod
     def send_message(network, sender_id, receiver_id, original_message):
         """
-        Sends run-length encoded message through network
+        Sends run-length encoded message through network using your implementation
         Creates message with specific metadata indicating run-length encoding
         """
-        print(f'\n🔤 IMPLEMENTATION 1: Run-Length Encoding')
+        print(f'\n🔤 IMPLEMENTATION 1: Run-Length Encoding (Updated)')
         print(f'Original message: "{original_message}"')
 
-        # Encode the message
-        encoded_message = RunLengthEncodingImplementation.encode(original_message)
-        compression_ratio = len(encoded_message) / len(original_message)
+        rle_result = run_length_encoding(original_message)
+        encoded_message = rle_result["message_body"]
+        rle_metadata = rle_result["metadata"]
+        
+        # Calculate compression ratio
+        compression_ratio = rle_metadata["compressed_length"] / rle_metadata["original_length"]
 
-        # Create message with required metadata
+        # Create message with required metadata (enhanced with your metadata)
         message = Message(sender_id, receiver_id, encoded_message, {
-            # REQUIRED: Metadata indicating run-length encoding
             'encoding': 'run-length-encoded',
             'compression_type': 'RLE',
-            'original_length': len(original_message),
-            'compressed_length': len(encoded_message),
+            'original_length': rle_metadata["original_length"],
+            'compressed_length': rle_metadata["compressed_length"],
             'compression_ratio': compression_ratio,
-            'algorithm': 'Run-Length Encoding'
+            'algorithm': 'Run-Length Encoding',
+            # Additional metadata from your implementation
+            'rle_encoding_type': rle_metadata["encoding"],
+            'validation_enabled': True
         })
 
         print(f'Encoded message: "{encoded_message}"')
         print(f'Compression ratio: {compression_ratio:.3f}')
+        print(f'Original length: {rle_metadata["original_length"]}')
+        print(f'Compressed length: {rle_metadata["compressed_length"]}')
         print(f'Metadata indicates: {message.metadata["encoding"]}')
 
         return network.send_message(message)
@@ -184,17 +226,37 @@ class RunLengthEncodingImplementation:
     @staticmethod
     def receive_message(message):
         """
-        Receives and decodes run-length encoded message
+        Receives and decodes run-length encoded message using your implementation
         """
         # Verify metadata indicates run-length encoding
         if message.metadata.get('encoding') != 'run-length-encoded':
             raise Exception('Message metadata does not indicate run-length encoding')
 
-        decoded_message = RunLengthEncodingImplementation.decode(message.body)
-        print(f'Decoded message: "{decoded_message}"')
-        print(f'Verified encoding type: {message.metadata["encoding"]}')
+        # Prepare data structure for your decoding function
+        encoded_data = {
+            "metadata": {
+                "encoding": "RLE",
+                "original_length": message.metadata['original_length'],
+                "compressed_length": message.metadata['compressed_length']
+            },
+            "message_body": message.body
+        }
 
-        return decoded_message
+        try:
+            decoded_message = run_length_encoding(encoded_data)
+            
+            print(f'Decoded message: "{decoded_message}"')
+            print(f'Verified encoding type: {message.metadata["encoding"]}')
+            print(f'Length validation: {"PASSED" if len(decoded_message) == message.metadata["original_length"] else "FAILED"}')
+
+            return decoded_message
+            
+        except ValueError as e:
+            print(f'Validation error: {e}')
+            raise
+        except TypeError as e:
+            print(f'Type error: {e}')
+            raise
 
 # ===============================
 # IMPLEMENTATION 2: FFT LOSSY COMPRESSION
@@ -324,7 +386,6 @@ class FFTLossyCompressionImplementation:
 
         # Create message with required metadata
         message = Message(sender_id, receiver_id, serialized_data, {
-            # REQUIRED: Metadata specifies original message length
             'original_message_length': compressed['original_length'],
             'compression_type': 'FFT-Lossy',
             'loss_level': loss_level,
@@ -471,7 +532,6 @@ class RSAEncryptionImplementation:
         sender = network.people[sender_id]
         receiver = network.people[receiver_id]
 
-        # REQUIRED: Both sender and receiver need public and private keys
         if not sender.public_key or not sender.private_key:
             sender_keys = RSAEncryptionImplementation.generate_key_pair()
             sender.public_key = sender_keys['public_key']
@@ -624,7 +684,6 @@ class RSAMessageSigningImplementation:
             sender.public_key = keys['public_key']
             sender.private_key = keys['private_key']
 
-        # REQUIRED: Create RSA-encrypted hash signature
         signed_data = RSAMessageSigningImplementation.sign_message(original_message, sender.private_key)
 
         message = Message(sender_id, receiver_id, json.dumps(signed_data), {
@@ -653,7 +712,6 @@ class RSAMessageSigningImplementation:
         signed_data = json.loads(message.body)
         sender_public_key = message.metadata['sender_public_key']
 
-        # REQUIRED: Decrypt hash and confirm it matches by redoing hash
         verification = RSAMessageSigningImplementation.verify_signature(signed_data, sender_public_key)
 
         print(f'Received signed message: "{signed_data["original_message"]}"')
@@ -695,7 +753,6 @@ class SignedConfirmationImplementation:
         # Create confirmation message text
         confirmation_text = f'CONFIRMATION: Message from {original_signed_message.sender_id} has been received and {"successfully validated" if verification_result["verified"] else "failed validation"}'
 
-        # REQUIRED: Include original signature and original hash
         confirmation_data = {
             'confirmation_message': confirmation_text,
             'original_sender': original_signed_message.sender_id,
@@ -705,10 +762,8 @@ class SignedConfirmationImplementation:
             'timestamp': time.time()
         }
 
-        # REQUIRED: Create hash of the returned message
         confirmation_hash = SignedConfirmationImplementation.hash(json.dumps(confirmation_data))
 
-        # REQUIRED: Create encrypted hash of the returned message (signature)
         encrypted_confirmation_hash = SignedConfirmationImplementation.mod_pow(
             confirmation_hash,
             confirmer_private_key['d'],
@@ -740,7 +795,6 @@ class SignedConfirmationImplementation:
             confirmer.public_key = keys['public_key']
             confirmer.private_key = keys['private_key']
 
-        # REQUIRED: Create comprehensive confirmation with all required elements
         confirmation = SignedConfirmationImplementation.create_confirmation(
             original_signed_message,
             verification_result,
@@ -754,7 +808,58 @@ class SignedConfirmationImplementation:
             'original_message_id': original_signed_message.metadata['message_id'],
             'confirmation_for': original_sender_id,
 
-            # REQUIRED ELEMENTS in metadata for easy access:
+            'original_signature': confirmation['original_signature'],
+            'original_hash': confirmation['original_hash'],
+            'verification_status': verification_result['verified'],
+            'timestamp': time.time()
+        }
+
+        confirmation_hash = SignedConfirmationImplementation.hash(json.dumps(confirmation_data))
+
+        encrypted_confirmation_hash = SignedConfirmationImplementation.mod_pow(
+            confirmation_hash,
+            confirmer_private_key['d'],
+            confirmer_private_key['n']
+        )
+
+        # Complete confirmation package
+        full_confirmation = {
+            **confirmation_data,
+            'hash_of_returned_message': confirmation_hash,
+            'encrypted_hash_of_returned_message': encrypted_confirmation_hash
+        }
+
+        return full_confirmation
+
+    @staticmethod
+    def send_confirmation(network, confirmer_id, original_sender_id, original_signed_message, verification_result):
+        """
+        Sends signed confirmation in response to a signed message
+        """
+        print(f'\n📋 IMPLEMENTATION 5: Signed Confirmation')
+        print(f'Confirming message from {original_sender_id} to {confirmer_id}')
+
+        confirmer = network.people[confirmer_id]
+
+        # Ensure confirmer has keys
+        if not confirmer.public_key or not confirmer.private_key:
+            keys = SignedConfirmationImplementation.generate_key_pair()
+            confirmer.public_key = keys['public_key']
+            confirmer.private_key = keys['private_key']
+
+        confirmation = SignedConfirmationImplementation.create_confirmation(
+            original_signed_message,
+            verification_result,
+            confirmer.private_key
+        )
+
+        message = Message(confirmer_id, original_sender_id, json.dumps(confirmation), {
+            'message_type': 'signed-confirmation',
+            'algorithm': 'RSA Signed Confirmation',
+            'confirmer_public_key': confirmer.public_key,
+            'original_message_id': original_signed_message.metadata['message_id'],
+            'confirmation_for': original_sender_id,
+
             'original_signature': confirmation['original_signature'],
             'original_hash': confirmation['original_hash'],
             'hash_of_returned_message': confirmation['hash_of_returned_message'],
@@ -788,7 +893,6 @@ class SignedConfirmationImplementation:
             confirmer_public_key['n']
         )
 
-        # Recreate confirmation data without signature for hash verification
         data_to_hash = {
             'confirmation_message': confirmation_data['confirmation_message'],
             'original_sender': confirmation_data['original_sender'],
@@ -827,6 +931,7 @@ def demonstrate_all_implementations():
     """
     print('=' * 80)
     print('    COMPREHENSIVE DEMONSTRATION: ALL 5 IMPLEMENTATIONS')
+    print('    (Updated with Improved RLE Implementation)')
     print('=' * 80)
 
     # Setup network and people
@@ -856,14 +961,16 @@ def demonstrate_all_implementations():
     print('                        Eve  <-----------')
 
     # ===============================
-    # IMPLEMENTATION 1 DEMO
+    # IMPLEMENTATION 1 DEMO - UPDATED RLE
     # ===============================
 
     print('\n' + '=' * 60)
-    print('TESTING IMPLEMENTATION 1: RUN-LENGTH ENCODING')
+    print('TESTING IMPLEMENTATION 1: UPDATED RUN-LENGTH ENCODING')
     print('=' * 60)
 
     message1 = 'aaaaaabbbbbbccccccdddddd!!!!!!......'
+    print(f'Testing message with repetitive patterns: "{message1}"')
+    
     msg_id1 = RunLengthEncodingImplementation.send_message(
         network, 'alice', 'diana', message1
     )
@@ -871,8 +978,29 @@ def demonstrate_all_implementations():
     received_msg1 = next((m for m in network.people['diana'].messages if m.metadata['message_id'] == msg_id1), None)
     decoded1 = RunLengthEncodingImplementation.receive_message(received_msg1)
 
-    print(f' Implementation 1 Success: {"PASSED" if decoded1 == message1 else "FAILED"}')
-    print(f' Metadata correctly indicates: {received_msg1.metadata["encoding"]}')
+    print(f'✅ Implementation 1 Success: {"PASSED" if decoded1 == message1 else "FAILED"}')
+    print(f'✅ Metadata correctly indicates: {received_msg1.metadata["encoding"]}')
+    print(f'✅ Length validation: {"PASSED" if len(decoded1) == received_msg1.metadata["original_length"] else "FAILED"}')
+
+    test_cases = [
+        'aaaa',  # Simple repetition
+        'abcd',  # No repetition
+        'aaabbbccc',  # Multiple repetitions
+        'a',  # Single character
+        ''  # Empty string (if handled)
+    ]
+
+    print('\n🧪 Testing RLE edge cases:')
+    for i, test_msg in enumerate(test_cases):
+        if test_msg:  # Skip empty string for now
+            try:
+                print(f'   Test {i+1}: "{test_msg}"')
+                rle_result = run_length_encoding(test_msg)
+                decoded_result = run_length_encoding(rle_result)
+                success = decoded_result == test_msg
+                print(f'   Result: {"PASSED" if success else "FAILED"} - Encoded: "{rle_result["message_body"]}"')
+            except Exception as e:
+                print(f'   Result: ERROR - {e}')
 
     # ===============================
     # IMPLEMENTATION 2 DEMO
@@ -899,8 +1027,8 @@ def demonstrate_all_implementations():
 
         # Calculate similarity to show "blurry" effect
         similarity = calculate_similarity(message2, decoded2)
-        print(f' Blurry effect achieved: {"YES" if similarity < 1.0 else "NO"} ({similarity * 100:.1f}% similarity)')
-        print(f' Metadata specifies original length: {received_msg2.metadata["original_message_length"]} chars')
+        print(f'✅ Blurry effect achieved: {"YES" if similarity < 1.0 else "NO"} ({similarity * 100:.1f}% similarity)')
+        print(f'✅ Metadata specifies original length: {received_msg2.metadata["original_message_length"]} chars')
 
     # ===============================
     # IMPLEMENTATION 3 DEMO
@@ -968,34 +1096,34 @@ def demonstrate_all_implementations():
     # ===============================
 
     print('\n' + '=' * 80)
-    print('    FINAL SUMMARY: ALL 5 IMPLEMENTATIONS')
+    print('    FINAL SUMMARY: ALL 5 IMPLEMENTATIONS (UPDATED)')
     print('=' * 80)
 
     results = [
         {
-            'impl': 'Implementation 1: Run-Length Encoding',
-            'requirement': 'Metadata indicates run-length encoding',
-            'status': ' PASSED' if received_msg1.metadata.get('encoding') == 'run-length-encoded' else '❌ FAILED'
+            'impl': 'Implementation 1: Updated Run-Length Encoding',
+            'requirement': 'Metadata indicates run-length encoding, improved algorithm with validation',
+            'status': '✅ PASSED' if received_msg1.metadata.get('encoding') == 'run-length-encoded' else '❌ FAILED'
         },
         {
             'impl': 'Implementation 2: FFT Lossy Compression',
             'requirement': 'Sender specifies loss level, metadata has original length',
-            'status': ' PASSED' if received_msg2 and received_msg2.metadata.get('original_message_length') else '❌ FAILED'
+            'status': '✅ PASSED' if received_msg2 and received_msg2.metadata.get('original_message_length') else '❌ FAILED'
         },
         {
             'impl': 'Implementation 3: RSA Encryption',
             'requirement': 'Both sender and receiver have public/private keys',
-            'status': ' PASSED' if received_msg3.metadata.get('sender_has_keys') and received_msg3.metadata.get('receiver_has_keys') else '❌ FAILED'
+            'status': '✅ PASSED' if received_msg3.metadata.get('sender_has_keys') and received_msg3.metadata.get('receiver_has_keys') else '❌ FAILED'
         },
         {
             'impl': 'Implementation 4: RSA Message Signing',
             'requirement': 'Signature is RSA-encrypted hash, receiver verifies by decrypting',
-            'status': ' PASSED' if verification_result.get('verified') else '❌ FAILED'
+            'status': '✅ PASSED' if verification_result.get('verified') else '❌ FAILED'
         },
         {
             'impl': 'Implementation 5: Signed Confirmations',
             'requirement': 'Includes original signature, original hash, new hash, encrypted new hash',
-            'status': (' PASSED' if (confirmation_msg.metadata.get('original_signature') and
+            'status': ('✅ PASSED' if (confirmation_msg.metadata.get('original_signature') and
                                     confirmation_msg.metadata.get('original_hash') and
                                     confirmation_msg.metadata.get('hash_of_returned_message') and
                                     confirmation_msg.metadata.get('encrypted_hash_of_returned_message')) else '❌ FAILED')
@@ -1036,6 +1164,13 @@ def demonstrate_all_implementations():
     for msg_type, count in type_counts.items():
         print(f'     - {msg_type}: {count} message(s)')
 
+    # RLE-specific statistics
+    print(f'\n🔤 Updated RLE Implementation Features:')
+    print(f'   • Max consecutive character limit: 9 (prevents overflow)')
+    print(f'   • Validation: Length verification enabled')
+    print(f'   • Error handling: TypeError and ValueError exceptions')
+    print(f'   • Metadata integration: Enhanced with validation flags')
+
     return {
         'all_implementations_successful': all_passed,
         'results': results,
@@ -1068,8 +1203,8 @@ def calculate_similarity(str1, str2):
 # ===============================
 
 def test_implementation_1():
-    """Test Implementation 1: Run-Length Encoding"""
-    print(' Testing Implementation 1: Run-Length Encoding')
+    """Test Implementation 1: Updated Run-Length Encoding"""
+    print('🔤 Testing Implementation 1: Updated Run-Length Encoding')
     network = CommunicationNetwork()
     alice = Person('alice', 'Alice')
     bob = Person('bob', 'Bob')
@@ -1083,12 +1218,17 @@ def test_implementation_1():
     decoded = RunLengthEncodingImplementation.receive_message(received)
 
     result = decoded == test_message
-    print(f'Result: {"PASSED" if result else "FAILED"}')
-    return result
+    print(f'   Result: {"PASSED" if result else "FAILED"}')
+    
+    # Additional validation test
+    length_valid = len(decoded) == received.metadata['original_length']
+    print(f'   Length validation: {"PASSED" if length_valid else "FAILED"}')
+    
+    return result and length_valid
 
 def test_implementation_2():
     """Test Implementation 2: FFT Lossy Compression"""
-    print(' Testing Implementation 2: FFT Lossy Compression')
+    print('🌊 Testing Implementation 2: FFT Lossy Compression')
     network = CommunicationNetwork()
     alice = Person('alice', 'Alice')
     bob = Person('bob', 'Bob')
@@ -1102,12 +1242,12 @@ def test_implementation_2():
     decoded = FFTLossyCompressionImplementation.receive_message(received)
 
     has_original_length = received.metadata.get('original_message_length') == len(test_message)
-    print(f'Result: {"PASSED" if has_original_length else "FAILED"}')
+    print(f'   Result: {"PASSED" if has_original_length else "FAILED"}')
     return has_original_length
 
 def test_implementation_3():
     """Test Implementation 3: RSA Encryption"""
-    print(' Testing Implementation 3: RSA Encryption')
+    print('🔒 Testing Implementation 3: RSA Encryption')
     network = CommunicationNetwork()
     alice = Person('alice', 'Alice')
     bob = Person('bob', 'Bob')
@@ -1122,12 +1262,12 @@ def test_implementation_3():
 
     both_have_keys = received.metadata.get('sender_has_keys') and received.metadata.get('receiver_has_keys')
     result = decoded == test_message and both_have_keys
-    print(f'Result: {"PASSED" if result else "FAILED"}')
+    print(f'   Result: {"PASSED" if result else "FAILED"}')
     return result
 
 def test_implementation_4():
     """Test Implementation 4: RSA Message Signing"""
-    print(' Testing Implementation 4: RSA Message Signing')
+    print('✍️ Testing Implementation 4: RSA Message Signing')
     network = CommunicationNetwork()
     alice = Person('alice', 'Alice')
     bob = Person('bob', 'Bob')
@@ -1141,12 +1281,12 @@ def test_implementation_4():
     result_data = RSAMessageSigningImplementation.receive_message(received)
 
     result = result_data.get('verified', False)
-    print(f'Result: {"PASSED" if result else "FAILED"}')
+    print(f'   Result: {"PASSED" if result else "FAILED"}')
     return result
 
 def test_implementation_5():
     """Test Implementation 5: Signed Confirmations"""
-    print(' Testing Implementation 5: Signed Confirmations')
+    print('📋 Testing Implementation 5: Signed Confirmations')
     network = CommunicationNetwork()
     alice = Person('alice', 'Alice')
     bob = Person('bob', 'Bob')
@@ -1171,15 +1311,77 @@ def test_implementation_5():
                        confirmation.metadata.get('encrypted_hash_of_returned_message'))
 
     result = confirm_result.get('confirmation_valid', False) and has_all_elements
-    print(f'Result: {"PASSED" if result else "FAILED"}')
+    print(f'   Result: {"PASSED" if result else "FAILED"}')
     return result
+
+# ===============================
+# STANDALONE RLE TESTING FUNCTION
+# ===============================
+
+def test_updated_rle_function():
+    """
+    Standalone test for your updated RLE function
+    """
+    print('\n' + '=' * 60)
+    print('TESTING YOUR UPDATED RLE FUNCTION STANDALONE')
+    print('=' * 60)
+
+    test_cases = [
+        ('aaaabbbcccc', 'Basic repetitive pattern'),
+        ('abcdef', 'No repetition'),
+        ('aaaaaaaaaa', 'Long repetition (>9 chars)'),
+        ('aabbccddee', 'Multiple short repetitions'),
+        ('a', 'Single character'),
+        ('aaabbbaaaccc', 'Repeated patterns'),
+        ('hello world!!!', 'Mixed content')
+    ]
+
+    all_passed = True
+
+    for test_input, description in test_cases:
+        try:
+            print(f'\n🧪 Testing: {description}')
+            print(f'   Input: "{test_input}"')
+            
+            # Encode
+            encoded_result = run_length_encoding(test_input)
+            encoded_message = encoded_result['message_body']
+            metadata = encoded_result['metadata']
+            
+            print(f'   Encoded: "{encoded_message}"')
+            print(f'   Compression: {len(test_input)} → {len(encoded_message)} chars')
+            
+            # Decode
+            decoded_result = run_length_encoding(encoded_result)
+            
+            print(f'   Decoded: "{decoded_result}"')
+            
+            # Verify
+            success = decoded_result == test_input
+            length_check = len(decoded_result) == metadata['original_length']
+            
+            print(f'   ✅ Decode match: {"PASSED" if success else "FAILED"}')
+            print(f'   ✅ Length validation: {"PASSED" if length_check else "FAILED"}')
+            
+            if not (success and length_check):
+                all_passed = False
+                
+        except Exception as e:
+            print(f'   ❌ ERROR: {e}')
+            all_passed = False
+
+    print(f'\n📊 Overall RLE Function Test: {"✅ ALL PASSED" if all_passed else "❌ SOME FAILED"}')
+    return all_passed
 
 # ===============================
 # MAIN EXECUTION
 # ===============================
 
 if __name__ == "__main__":
-    print(' Starting demonstration of all 5 implementations...\n')
+    print('🚀 Starting demonstration of all 5 implementations with updated RLE...\n')
+
+    # Test the standalone RLE function first
+    test_updated_rle_function()
 
     # Run the comprehensive demonstration
     results = demonstrate_all_implementations()
@@ -1198,10 +1400,24 @@ if __name__ == "__main__":
 
     all_individual_passed = all(individual_results)
 
-    print(f'\n Individual test summary: {"ALL PASSED" if all_individual_passed else "SOME FAILED"}')
-    print(f' Overall demonstration: {"ALL SUCCESSFUL" if results["all_implementations_successful"] else "NEEDS REVIEW"}')
+    print(f'\n📋 Individual test summary: {"✅ ALL PASSED" if all_individual_passed else "❌ SOME FAILED"}')
+    print(f'📋 Overall demonstration: {"✅ ALL SUCCESSFUL" if results["all_implementations_successful"] else "⚠️ NEEDS REVIEW"}')
 
     print('\n' + '=' * 80)
     print('     DEMONSTRATION COMPLETE - ALL 5 IMPLEMENTATIONS READY')
+    print('     (Updated with Enhanced RLE Algorithm)')
     print('=' * 80)
 
+# Example usage of the standalone RLE function:
+if __name__ == "__main__":
+    print('\n' + '=' * 40)
+    print('EXAMPLE USAGE OF YOUR RLE FUNCTION:')
+    print('=' * 40)
+    
+    # Example 1: Encoding
+    msg = run_length_encoding("aaaabbbcccc")
+    print(f'Encoded result: {msg}')
+    
+    # Example 2: Decoding  
+    original = run_length_encoding(msg)
+    print(f'Decoded result: "{original}"')
