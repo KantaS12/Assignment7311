@@ -1,19 +1,9 @@
-"""
-Five Distinct Message Communication Implementations - Python Version
-Updated with improved RLE implementation
-Each implementation addresses one specific requirement from the assignment
-"""
-
 import random
 import json
 import math
 import numpy as np
 from collections import deque
 import time
-
-# ===============================
-# SHARED FOUNDATION CLASSES
-# ===============================
 
 class Person:
     def __init__(self, id, name):
@@ -83,39 +73,26 @@ class CommunicationNetwork:
 
         message.metadata['route_path'] = path
 
-        # Route to final recipient
         receiver = self.people.get(message.receiver_id)
         receiver.messages.append(message)
 
         self.message_history.append(message)
         return message.metadata['message_id']
 
-# ===============================
-# UPDATED IMPLEMENTATION 1: RUN-LENGTH ENCODING
-# ===============================
-
 def run_length_encoding(data):
-    """
-    Your updated RLE function with encoding and decoding capabilities
-    """
-    # --- Encoding Section ---
-    if isinstance(data, str):  # Check if input is a string.
-        encoded_string = []  # A list where we'll build the compressed output.
-        count = 1  # Keep track of how many times the current character repeats.
+    if isinstance(data, str):
+        encoded_string = []
+        count = 1
         
-        # To loop through each character in the string by index.
         for i in range(len(data)):
-            # A streak of repeating characters.
             if i + 1 < len(data) and data[i] == data[i + 1] and count < 9:
                 count += 1
-            # The streak ended (i.e., we hit a different character, reached the last character, or reached the max).
             else:
                 encoded_string.append(str(count) + data[i])
                 count = 1
         
-        compressed = ''.join(encoded_string)  # Join the compressed parts into a single string.
+        compressed = ''.join(encoded_string)
         
-        # Create metadata to store information about the compression.
         metadata = {
             "encoding": "RLE",
             "original_length": len(data),
@@ -127,49 +104,32 @@ def run_length_encoding(data):
             "message_body": compressed
         }
     
-    # --- Decoding Section ---
     elif isinstance(data, dict) and "metadata" in data and "message_body" in data:
-        # Check if input is a dict that contains both "metadata" and "message_body".
-        # Extract the compressed message and metadata from the input dictionary.
         compressed = data["message_body"]
         metadata = data["metadata"]
         
-        decoded = []  # A list where we build the uncompressed message.
-        i = 0  # The index for looping through the compressed string.
+        decoded = []
+        i = 0
         
-        # Loop through the compressed string two characters at a time (because e.g., "4a").
         while i < len(compressed):
             count = int(compressed[i])
             char = compressed[i + 1]
             decoded.append(char * count)
             i += 2
         
-        decoded_message = ''.join(decoded)  # Join the decoded parts into a single string.
+        decoded_message = ''.join(decoded)
         
-        # Check if the decoded message length matches the original length stored in metadata.
-        # If it does not, raise an error.
         if len(decoded_message) != metadata["original_length"]:
             raise ValueError("Decoded message length does not match metadata.")
         
         return decoded_message
     
-    # Error handling for invalid input types (i.e., it's neither a string or dict).
     else:
         raise TypeError("Invalid input type. Must be a string (for encoding) or a dict (for decoding).")
 
 class RunLengthEncodingImplementation:
-    """
-    IMPLEMENTATION 1: Send compressed messages using run-length encoding
-    Requirement: "The metadata should indicate that the message is run-length encoded"
-    Updated with your improved RLE algorithm
-    """
-
     @staticmethod
     def encode(message):
-        """
-        Encodes message using your updated run-length encoding function
-        Time Complexity: O(n) where n is message length
-        """
         if not message:
             return ''
         
@@ -178,9 +138,6 @@ class RunLengthEncodingImplementation:
 
     @staticmethod
     def decode(encoded_data):
-        """
-        Decodes run-length encoded message using your updated function
-        """
         if not encoded_data:
             return ''
         
@@ -188,10 +145,6 @@ class RunLengthEncodingImplementation:
 
     @staticmethod
     def send_message(network, sender_id, receiver_id, original_message):
-        """
-        Sends run-length encoded message through network using your implementation
-        Creates message with specific metadata indicating run-length encoding
-        """
         print(f'\n🔤 IMPLEMENTATION 1: Run-Length Encoding (Updated)')
         print(f'Original message: "{original_message}"')
 
@@ -199,10 +152,8 @@ class RunLengthEncodingImplementation:
         encoded_message = rle_result["message_body"]
         rle_metadata = rle_result["metadata"]
         
-        # Calculate compression ratio
         compression_ratio = rle_metadata["compressed_length"] / rle_metadata["original_length"]
 
-        # Create message with required metadata (enhanced with your metadata)
         message = Message(sender_id, receiver_id, encoded_message, {
             'encoding': 'run-length-encoded',
             'compression_type': 'RLE',
@@ -210,7 +161,6 @@ class RunLengthEncodingImplementation:
             'compressed_length': rle_metadata["compressed_length"],
             'compression_ratio': compression_ratio,
             'algorithm': 'Run-Length Encoding',
-            # Additional metadata from your implementation
             'rle_encoding_type': rle_metadata["encoding"],
             'validation_enabled': True
         })
@@ -225,14 +175,9 @@ class RunLengthEncodingImplementation:
 
     @staticmethod
     def receive_message(message):
-        """
-        Receives and decodes run-length encoded message using your implementation
-        """
-        # Verify metadata indicates run-length encoding
         if message.metadata.get('encoding') != 'run-length-encoded':
             raise Exception('Message metadata does not indicate run-length encoding')
 
-        # Prepare data structure for your decoding function
         encoded_data = {
             "metadata": {
                 "encoding": "RLE",
@@ -258,24 +203,9 @@ class RunLengthEncodingImplementation:
             print(f'Type error: {e}')
             raise
 
-# ===============================
-# IMPLEMENTATION 2: FFT LOSSY COMPRESSION
-# ===============================
-
 class FFTLossyCompressionImplementation:
-    """
-    IMPLEMENTATION 2: Send lossy compressed messages using Fast Fourier Transform
-    Requirement: "Sender may specify how lossy the compression should be"
-    Requirement: "Messages should be 'blurry', fine details can be lost"
-    Requirement: "Metadata specifies original message length"
-    """
-
     @staticmethod
     def dft(signal):
-        """
-        Discrete Fourier Transform for frequency analysis
-        Time Complexity: O(n²) - educational implementation
-        """
         N = len(signal)
         result = []
 
@@ -298,9 +228,6 @@ class FFTLossyCompressionImplementation:
 
     @staticmethod
     def idft(coefficients):
-        """
-        Inverse DFT to reconstruct signal
-        """
         N = len(coefficients)
         result = []
 
@@ -317,31 +244,21 @@ class FFTLossyCompressionImplementation:
 
     @staticmethod
     def compress_lossy(message, loss_level):
-        """
-        Applies lossy compression to message
-        loss_level: 0.0 = no loss, 0.9 = very lossy/blurry
-        """
-        # Convert message to signal
         signal = [ord(char) for char in message]
         original_length = len(signal)
 
-        # Pad for better processing
         while len(signal) & (len(signal) - 1):
             signal.append(0)
 
-        # Apply FFT
         coefficients = FFTLossyCompressionImplementation.dft(signal)
 
-        # LOSSY COMPRESSION: Remove high-frequency components
         keep_ratio = 1 - loss_level
         keep_count = int(len(coefficients) * keep_ratio)
 
-        # Sort by magnitude and keep most important frequencies
         sorted_indices = sorted(range(len(coefficients)), 
                               key=lambda i: coefficients[i]['magnitude'], 
                               reverse=True)[:keep_count]
 
-        # Zero out less important frequencies (creates "blurry" effect)
         lossy_coefficients = []
         for i, coef in enumerate(coefficients):
             if i in sorted_indices:
@@ -359,9 +276,6 @@ class FFTLossyCompressionImplementation:
 
     @staticmethod
     def decompress_lossy(compressed_data):
-        """
-        Decompresses lossy message
-        """
         signal = FFTLossyCompressionImplementation.idft(compressed_data['coefficients'])
 
         result = ''
@@ -373,18 +287,13 @@ class FFTLossyCompressionImplementation:
 
     @staticmethod
     def send_message(network, sender_id, receiver_id, original_message, loss_level=0.3):
-        """
-        Sends lossy compressed message with sender-specified loss level
-        """
         print(f'\n🌊 IMPLEMENTATION 2: FFT Lossy Compression')
         print(f'Original message: "{original_message}"')
         print(f'Sender-specified loss level: {loss_level * 100:.0f}%')
 
-        # Apply lossy compression
         compressed = FFTLossyCompressionImplementation.compress_lossy(original_message, loss_level)
         serialized_data = json.dumps([[c['real'], c['imag']] for c in compressed['coefficients']])
 
-        # Create message with required metadata
         message = Message(sender_id, receiver_id, serialized_data, {
             'original_message_length': compressed['original_length'],
             'compression_type': 'FFT-Lossy',
@@ -392,7 +301,7 @@ class FFTLossyCompressionImplementation:
             'frequencies_kept': compressed['frequencies_kept'],
             'total_frequencies': len(compressed['coefficients']),
             'padded_length': compressed['padded_length'],
-            'is_blurry': True,  # Indicates fine details lost
+            'is_blurry': True,
             'algorithm': 'Fast Fourier Transform Lossy Compression'
         })
 
@@ -405,14 +314,9 @@ class FFTLossyCompressionImplementation:
 
     @staticmethod
     def receive_message(message):
-        """
-        Receives and decompresses lossy message
-        """
-        # Verify this is FFT lossy compressed
         if message.metadata.get('compression_type') != 'FFT-Lossy':
             raise Exception('Message is not FFT lossy compressed')
 
-        # Reconstruct compression data
         coefficient_pairs = json.loads(message.body)
         compressed_data = {
             'coefficients': [{'real': real, 'imag': imag} for real, imag in coefficient_pairs],
@@ -429,28 +333,15 @@ class FFTLossyCompressionImplementation:
 
         return decompressed
 
-# ===============================
-# IMPLEMENTATION 3: RSA ENCRYPTION
-# ===============================
-
 class RSAEncryptionImplementation:
-    """
-    IMPLEMENTATION 3: Send encrypted messages using RSA encryption
-    Requirement: "Sender and receiver both need public key and private key"
-    """
-
     @staticmethod
     def generate_key_pair():
-        """
-        Generates RSA key pair (public and private keys)
-        """
-        # Using small primes for educational purposes
         p = 61
         q = 53
-        n = p * q  # 3233
-        phi = (p - 1) * (q - 1)  # 3120
-        e = 17  # Public exponent
-        d = RSAEncryptionImplementation.mod_inverse(e, phi)  # Private exponent
+        n = p * q
+        phi = (p - 1) * (q - 1)
+        e = 17
+        d = RSAEncryptionImplementation.mod_inverse(e, phi)
 
         return {
             'public_key': {'n': n, 'e': e},
@@ -459,9 +350,6 @@ class RSAEncryptionImplementation:
 
     @staticmethod
     def extended_gcd(a, b):
-        """
-        Extended Euclidean Algorithm for modular inverse
-        """
         if a == 0:
             return b, 0, 1
         gcd, x1, y1 = RSAEncryptionImplementation.extended_gcd(b % a, a)
@@ -477,10 +365,6 @@ class RSAEncryptionImplementation:
 
     @staticmethod
     def mod_pow(base, exponent, modulus):
-        """
-        Fast modular exponentiation
-        Time Complexity: O(log exponent)
-        """
         result = 1
         base = base % modulus
 
@@ -494,9 +378,6 @@ class RSAEncryptionImplementation:
 
     @staticmethod
     def encrypt(message, public_key):
-        """
-        Encrypts message using receiver's public key
-        """
         n = public_key['n']
         e = public_key['e']
         encrypted = []
@@ -510,9 +391,6 @@ class RSAEncryptionImplementation:
 
     @staticmethod
     def decrypt(encrypted_message, private_key):
-        """
-        Decrypts message using receiver's private key
-        """
         n = private_key['n']
         d = private_key['d']
         encrypted = json.loads(encrypted_message)
@@ -526,9 +404,6 @@ class RSAEncryptionImplementation:
 
     @staticmethod
     def setup_keys(network, sender_id, receiver_id):
-        """
-        Sets up both sender and receiver with public/private key pairs
-        """
         sender = network.people[sender_id]
         receiver = network.people[receiver_id]
 
@@ -551,17 +426,12 @@ class RSAEncryptionImplementation:
 
     @staticmethod
     def send_message(network, sender_id, receiver_id, original_message):
-        """
-        Sends RSA encrypted message
-        """
         print(f'\n🔒 IMPLEMENTATION 3: RSA Encryption')
         print(f'Original message: "{original_message}"')
 
-        # Ensure both parties have keys
         keys = RSAEncryptionImplementation.setup_keys(network, sender_id, receiver_id)
         receiver = network.people[receiver_id]
 
-        # Encrypt using receiver's public key
         encrypted_message = RSAEncryptionImplementation.encrypt(original_message, receiver.public_key)
 
         message = Message(sender_id, receiver_id, encrypted_message, {
@@ -582,9 +452,6 @@ class RSAEncryptionImplementation:
 
     @staticmethod
     def receive_message(message, receiver_private_key):
-        """
-        Receives and decrypts RSA encrypted message
-        """
         if message.metadata.get('encryption_type') != 'RSA':
             raise Exception('Message is not RSA encrypted')
 
@@ -595,42 +462,30 @@ class RSAEncryptionImplementation:
 
         return decrypted_message
 
-# ===============================
-# IMPLEMENTATION 4: RSA MESSAGE SIGNING
-# ===============================
-
 class RSAMessageSigningImplementation:
-    """
-    IMPLEMENTATION 4: Send signed messages using RSA
-    Requirement: "Signature should be RSA-encrypted hash of the message"
-    Requirement: "Receiver can decrypt hash and confirm it matches by redoing hash"
-    """
-
     @staticmethod
     def hash(message):
-        """
-        Simple hash function for message integrity
-        Time Complexity: O(n)
-        """
-        hash_value = 0
+        if not message:
+            return 0
+            
+        hash_value = 5381
         for char in message:
-            hash_value = ((hash_value << 5) - hash_value) + ord(char)
-            hash_value = hash_value & hash_value
-        return abs(hash_value)
+            hash_value = ((hash_value << 5) + hash_value) + ord(char)
+            hash_value = hash_value & 0x7FFFFFFF
+        
+        return hash_value
 
-    # Uses RSA key operations from Implementation 3
     mod_pow = RSAEncryptionImplementation.mod_pow
     generate_key_pair = RSAEncryptionImplementation.generate_key_pair
 
     @staticmethod
     def sign_message(message, sender_private_key):
-        """
-        Creates RSA signature by encrypting hash with sender's private key
-        """
-        # Step 1: Create hash of message
         message_hash = RSAMessageSigningImplementation.hash(message)
+        
+        n = sender_private_key['n']
+        if message_hash >= n:
+            message_hash = message_hash % (n - 1) + 1
 
-        # Step 2: RSA-encrypt the hash with sender's private key (this is the signature)
         signature = RSAMessageSigningImplementation.mod_pow(
             message_hash, sender_private_key['d'], sender_private_key['n']
         )
@@ -643,114 +498,126 @@ class RSAMessageSigningImplementation:
 
     @staticmethod
     def verify_signature(signed_data, sender_public_key):
-        """
-        Verifies signature by decrypting with sender's public key
-        """
         original_message = signed_data['original_message']
-        message_hash = signed_data['message_hash']
+        original_hash = signed_data['message_hash']
         signature = signed_data['signature']
 
-        # Step 1: Decrypt signature using sender's public key
-        decrypted_hash = RSAMessageSigningImplementation.mod_pow(
-            signature, sender_public_key['e'], sender_public_key['n']
-        )
+        try:
+            decrypted_hash = RSAMessageSigningImplementation.mod_pow(
+                signature, sender_public_key['e'], sender_public_key['n']
+            )
 
-        # Step 2: Redo the hash of the message
-        recomputed_hash = RSAMessageSigningImplementation.hash(original_message)
+            recomputed_hash = RSAMessageSigningImplementation.hash(original_message)
+            
+            n = sender_public_key['n']
+            if recomputed_hash >= n:
+                recomputed_hash = recomputed_hash % (n - 1) + 1
 
-        # Step 3: Confirm that decrypted hash matches recomputed hash
-        is_valid = (decrypted_hash == recomputed_hash) and (recomputed_hash == message_hash)
+            hash_match = decrypted_hash == recomputed_hash
+            original_match = recomputed_hash == original_hash
+            is_valid = hash_match and original_match
 
-        return {
-            'valid': is_valid,
-            'decrypted_hash': decrypted_hash,
-            'recomputed_hash': recomputed_hash,
-            'original_hash': message_hash
-        }
+            return {
+                'valid': is_valid,
+                'decrypted_hash': decrypted_hash,
+                'recomputed_hash': recomputed_hash,
+                'original_hash': original_hash,
+                'hash_match': hash_match,
+                'original_match': original_match
+            }
+            
+        except Exception as e:
+            print(f'Signature verification error: {e}')
+            return {
+                'valid': False,
+                'error': str(e),
+                'decrypted_hash': 0,
+                'recomputed_hash': 0,
+                'original_hash': original_hash
+            }
 
     @staticmethod
     def send_message(network, sender_id, receiver_id, original_message):
-        """
-        Sends signed message through network
-        """
-        print(f'\n✍️ IMPLEMENTATION 4: RSA Message Signing')
+        print(f'\n✍️ IMPLEMENTATION 4: RSA Message Signing (Fixed)')
         print(f'Original message: "{original_message}"')
 
         sender = network.people[sender_id]
 
-        # Ensure sender has keys
         if not sender.public_key or not sender.private_key:
             keys = RSAEncryptionImplementation.generate_key_pair()
             sender.public_key = keys['public_key']
             sender.private_key = keys['private_key']
+            print(f'Generated RSA keys for sender {sender_id}')
 
-        signed_data = RSAMessageSigningImplementation.sign_message(original_message, sender.private_key)
+        try:
+            signed_data = RSAMessageSigningImplementation.sign_message(original_message, sender.private_key)
 
-        message = Message(sender_id, receiver_id, json.dumps(signed_data), {
-            'message_type': 'RSA-signed',
-            'algorithm': 'RSA Digital Signature',
-            'sender_public_key': sender.public_key,
-            'signature_method': 'RSA-encrypted-hash',
-            'original_message_hash': signed_data['message_hash'],
-            'signature': signed_data['signature']
-        })
+            message = Message(sender_id, receiver_id, json.dumps(signed_data), {
+                'message_type': 'RSA-signed',
+                'algorithm': 'RSA Digital Signature',
+                'sender_public_key': sender.public_key,
+                'signature_method': 'RSA-encrypted-hash',
+                'original_message_hash': signed_data['message_hash'],
+                'signature': signed_data['signature'],
+                'key_modulus': sender.private_key['n']
+            })
 
-        print(f'Message hash: {signed_data["message_hash"]}')
-        print(f'RSA-encrypted hash (signature): {signed_data["signature"]}')
-        print(f'Signature created with sender\'s private key')
+            print(f'Message hash: {signed_data["message_hash"]}')
+            print(f'RSA-encrypted hash (signature): {signed_data["signature"]}')
+            print(f'Signature created with sender\'s private key')
+            print(f'Key modulus (n): {sender.private_key["n"]}')
 
-        return network.send_message(message)
+            return network.send_message(message)
+            
+        except Exception as e:
+            print(f'Error creating signed message: {e}')
+            raise
 
     @staticmethod
     def receive_message(message):
-        """
-        Receives and verifies signed message
-        """
         if message.metadata.get('message_type') != 'RSA-signed':
             raise Exception('Message is not RSA signed')
 
-        signed_data = json.loads(message.body)
-        sender_public_key = message.metadata['sender_public_key']
+        try:
+            signed_data = json.loads(message.body)
+            sender_public_key = message.metadata['sender_public_key']
 
-        verification = RSAMessageSigningImplementation.verify_signature(signed_data, sender_public_key)
+            verification = RSAMessageSigningImplementation.verify_signature(signed_data, sender_public_key)
 
-        print(f'Received signed message: "{signed_data["original_message"]}"')
-        print(f'Decrypted hash from signature: {verification["decrypted_hash"]}')
-        print(f'Recomputed hash of message: {verification["recomputed_hash"]}')
-        print(f'Original hash matches: {verification["decrypted_hash"] == verification["original_hash"]}')
-        print(f'Recomputed hash matches: {verification["recomputed_hash"] == verification["original_hash"]}')
-        print(f'Signature valid: {verification["valid"]}')
+            print(f'Received signed message: "{signed_data["original_message"]}"')
+            print(f'Original hash in message: {verification["original_hash"]}')
+            print(f'Decrypted hash from signature: {verification["decrypted_hash"]}')
+            print(f'Recomputed hash of message: {verification["recomputed_hash"]}')
+            
+            if verification.get('hash_match') is not None:
+                print(f'Decrypted matches recomputed: {verification["hash_match"]}')
+                print(f'Recomputed matches original: {verification["original_match"]}')
+            
+            print(f'✅ Signature valid: {verification["valid"]}')
 
-        return {
-            'message': signed_data['original_message'],
-            'verified': verification['valid'],
-            'verification': verification
-        }
-
-# ===============================
-# IMPLEMENTATION 5: SIGNED CONFIRMATIONS
-# ===============================
+            return {
+                'message': signed_data['original_message'],
+                'verified': verification['valid'],
+                'verification': verification
+            }
+            
+        except Exception as e:
+            print(f'Error receiving signed message: {e}')
+            return {
+                'message': '',
+                'verified': False,
+                'error': str(e)
+            }
 
 class SignedConfirmationImplementation:
-    """
-    IMPLEMENTATION 5: Send signed confirmation messages
-    Requirement: "Return signed message confirming the signed message was received and validated"
-    Requirement: "Include original signature, original hash, hash of returned message, encrypted hash of returned message"
-    """
-
-    # Uses hash and RSA operations from previous implementations
     hash = RSAMessageSigningImplementation.hash
     mod_pow = RSAEncryptionImplementation.mod_pow
     generate_key_pair = RSAEncryptionImplementation.generate_key_pair
 
     @staticmethod
     def create_confirmation(original_signed_message, verification_result, confirmer_private_key):
-        """
-        Creates comprehensive signed confirmation message
-        """
         original_data = json.loads(original_signed_message.body)
 
-        # Create confirmation message text
         confirmation_text = f'CONFIRMATION: Message from {original_signed_message.sender_id} has been received and {"successfully validated" if verification_result["verified"] else "failed validation"}'
 
         confirmation_data = {
@@ -762,7 +629,11 @@ class SignedConfirmationImplementation:
             'timestamp': time.time()
         }
 
-        confirmation_hash = SignedConfirmationImplementation.hash(json.dumps(confirmation_data))
+        confirmation_hash = SignedConfirmationImplementation.hash(json.dumps(confirmation_data, sort_keys=True))
+        
+        n = confirmer_private_key['n']
+        if confirmation_hash >= n:
+            confirmation_hash = confirmation_hash % (n - 1) + 1
 
         encrypted_confirmation_hash = SignedConfirmationImplementation.mod_pow(
             confirmation_hash,
@@ -770,7 +641,6 @@ class SignedConfirmationImplementation:
             confirmer_private_key['n']
         )
 
-        # Complete confirmation package
         full_confirmation = {
             **confirmation_data,
             'hash_of_returned_message': confirmation_hash,
@@ -781,160 +651,113 @@ class SignedConfirmationImplementation:
 
     @staticmethod
     def send_confirmation(network, confirmer_id, original_sender_id, original_signed_message, verification_result):
-        """
-        Sends signed confirmation in response to a signed message
-        """
-        print(f'\n📋 IMPLEMENTATION 5: Signed Confirmation')
+        print(f'\n📋 IMPLEMENTATION 5: Signed Confirmation (Fixed)')
         print(f'Confirming message from {original_sender_id} to {confirmer_id}')
 
         confirmer = network.people[confirmer_id]
 
-        # Ensure confirmer has keys
         if not confirmer.public_key or not confirmer.private_key:
             keys = SignedConfirmationImplementation.generate_key_pair()
             confirmer.public_key = keys['public_key']
             confirmer.private_key = keys['private_key']
+            print(f'Generated RSA keys for confirmer {confirmer_id}')
 
-        confirmation = SignedConfirmationImplementation.create_confirmation(
-            original_signed_message,
-            verification_result,
-            confirmer.private_key
-        )
+        try:
+            confirmation = SignedConfirmationImplementation.create_confirmation(
+                original_signed_message,
+                verification_result,
+                confirmer.private_key
+            )
 
-        message = Message(confirmer_id, original_sender_id, json.dumps(confirmation), {
-            'message_type': 'signed-confirmation',
-            'algorithm': 'RSA Signed Confirmation',
-            'confirmer_public_key': confirmer.public_key,
-            'original_message_id': original_signed_message.metadata['message_id'],
-            'confirmation_for': original_sender_id,
+            message = Message(confirmer_id, original_sender_id, json.dumps(confirmation), {
+                'message_type': 'signed-confirmation',
+                'algorithm': 'RSA Signed Confirmation',
+                'confirmer_public_key': confirmer.public_key,
+                'original_message_id': original_signed_message.metadata['message_id'],
+                'confirmation_for': original_sender_id,
 
-            'original_signature': confirmation['original_signature'],
-            'original_hash': confirmation['original_hash'],
-            'verification_status': verification_result['verified'],
-            'timestamp': time.time()
-        }
+                'original_signature': confirmation['original_signature'],
+                'original_hash': confirmation['original_hash'],
+                'hash_of_returned_message': confirmation['hash_of_returned_message'],
+                'encrypted_hash_of_returned_message': confirmation['encrypted_hash_of_returned_message'],
+                'key_modulus': confirmer.private_key['n']
+            })
 
-        confirmation_hash = SignedConfirmationImplementation.hash(json.dumps(confirmation_data))
+            print(f'✅ Confirmation includes all required elements:')
+            print(f'   • Original received signature: {confirmation["original_signature"]}')
+            print(f'   • Original hash: {confirmation["original_hash"]}')
+            print(f'   • Hash of returned message: {confirmation["hash_of_returned_message"]}')
+            print(f'   • Encrypted hash of returned message: {confirmation["encrypted_hash_of_returned_message"]}')
+            print(f'   • Verification status: {confirmation["verification_status"]}')
 
-        encrypted_confirmation_hash = SignedConfirmationImplementation.mod_pow(
-            confirmation_hash,
-            confirmer_private_key['d'],
-            confirmer_private_key['n']
-        )
-
-        # Complete confirmation package
-        full_confirmation = {
-            **confirmation_data,
-            'hash_of_returned_message': confirmation_hash,
-            'encrypted_hash_of_returned_message': encrypted_confirmation_hash
-        }
-
-        return full_confirmation
-
-    @staticmethod
-    def send_confirmation(network, confirmer_id, original_sender_id, original_signed_message, verification_result):
-        """
-        Sends signed confirmation in response to a signed message
-        """
-        print(f'\n📋 IMPLEMENTATION 5: Signed Confirmation')
-        print(f'Confirming message from {original_sender_id} to {confirmer_id}')
-
-        confirmer = network.people[confirmer_id]
-
-        # Ensure confirmer has keys
-        if not confirmer.public_key or not confirmer.private_key:
-            keys = SignedConfirmationImplementation.generate_key_pair()
-            confirmer.public_key = keys['public_key']
-            confirmer.private_key = keys['private_key']
-
-        confirmation = SignedConfirmationImplementation.create_confirmation(
-            original_signed_message,
-            verification_result,
-            confirmer.private_key
-        )
-
-        message = Message(confirmer_id, original_sender_id, json.dumps(confirmation), {
-            'message_type': 'signed-confirmation',
-            'algorithm': 'RSA Signed Confirmation',
-            'confirmer_public_key': confirmer.public_key,
-            'original_message_id': original_signed_message.metadata['message_id'],
-            'confirmation_for': original_sender_id,
-
-            'original_signature': confirmation['original_signature'],
-            'original_hash': confirmation['original_hash'],
-            'hash_of_returned_message': confirmation['hash_of_returned_message'],
-            'encrypted_hash_of_returned_message': confirmation['encrypted_hash_of_returned_message']
-        })
-
-        print(f'✅ Confirmation includes all required elements:')
-        print(f'   • Original received signature: {confirmation["original_signature"]}')
-        print(f'   • Original hash: {confirmation["original_hash"]}')
-        print(f'   • Hash of returned message: {confirmation["hash_of_returned_message"]}')
-        print(f'   • Encrypted hash of returned message: {confirmation["encrypted_hash_of_returned_message"]}')
-        print(f'   • Verification status: {confirmation["verification_status"]}')
-
-        return network.send_message(message)
+            return network.send_message(message)
+            
+        except Exception as e:
+            print(f'Error creating confirmation: {e}')
+            raise
 
     @staticmethod
     def receive_confirmation(confirmation_message):
-        """
-        Receives and processes signed confirmation
-        """
         if confirmation_message.metadata.get('message_type') != 'signed-confirmation':
             raise Exception('Message is not a signed confirmation')
 
-        confirmation_data = json.loads(confirmation_message.body)
-        confirmer_public_key = confirmation_message.metadata['confirmer_public_key']
+        try:
+            confirmation_data = json.loads(confirmation_message.body)
+            confirmer_public_key = confirmation_message.metadata['confirmer_public_key']
 
-        # Verify the confirmation signature
-        decrypted_hash = SignedConfirmationImplementation.mod_pow(
-            confirmation_data['encrypted_hash_of_returned_message'],
-            confirmer_public_key['e'],
-            confirmer_public_key['n']
-        )
+            decrypted_hash = SignedConfirmationImplementation.mod_pow(
+                confirmation_data['encrypted_hash_of_returned_message'],
+                confirmer_public_key['e'],
+                confirmer_public_key['n']
+            )
 
-        data_to_hash = {
-            'confirmation_message': confirmation_data['confirmation_message'],
-            'original_sender': confirmation_data['original_sender'],
-            'original_signature': confirmation_data['original_signature'],
-            'original_hash': confirmation_data['original_hash'],
-            'verification_status': confirmation_data['verification_status'],
-            'timestamp': confirmation_data['timestamp']
-        }
+            data_to_hash = {
+                'confirmation_message': confirmation_data['confirmation_message'],
+                'original_sender': confirmation_data['original_sender'],
+                'original_signature': confirmation_data['original_signature'],
+                'original_hash': confirmation_data['original_hash'],
+                'verification_status': confirmation_data['verification_status'],
+                'timestamp': confirmation_data['timestamp']
+            }
 
-        recomputed_hash = SignedConfirmationImplementation.hash(json.dumps(data_to_hash))
-        confirmation_valid = decrypted_hash == recomputed_hash
+            recomputed_hash = SignedConfirmationImplementation.hash(json.dumps(data_to_hash, sort_keys=True))
+            
+            n = confirmer_public_key['n']
+            if recomputed_hash >= n:
+                recomputed_hash = recomputed_hash % (n - 1) + 1
+                
+            confirmation_valid = decrypted_hash == recomputed_hash
 
-        print(f'📨 Received signed confirmation:')
-        print(f'   • Confirmation message: "{confirmation_data["confirmation_message"]}"')
-        print(f'   • Original signature included: {confirmation_data["original_signature"]}')
-        print(f'   • Original hash included: {confirmation_data["original_hash"]}')
-        print(f'   • Hash of returned message: {confirmation_data["hash_of_returned_message"]}')
-        print(f'   • Encrypted hash of returned message: {confirmation_data["encrypted_hash_of_returned_message"]}')
-        print(f'   • Confirmation signature valid: {confirmation_valid}')
-        print(f'   • Original message was verified: {confirmation_data["verification_status"]}')
+            print(f'📨 Received signed confirmation:')
+            print(f'   • Confirmation message: "{confirmation_data["confirmation_message"]}"')
+            print(f'   • Original signature included: {confirmation_data["original_signature"]}')
+            print(f'   • Original hash included: {confirmation_data["original_hash"]}')
+            print(f'   • Hash of returned message: {confirmation_data["hash_of_returned_message"]}')
+            print(f'   • Encrypted hash of returned message: {confirmation_data["encrypted_hash_of_returned_message"]}')
+            print(f'   • Decrypted hash: {decrypted_hash}')
+            print(f'   • Recomputed hash: {recomputed_hash}')
+            print(f'   ✅ Confirmation signature valid: {confirmation_valid}')
+            print(f'   ✅ Original message was verified: {confirmation_data["verification_status"]}')
 
-        return {
-            'confirmation_valid': confirmation_valid,
-            'original_message_verified': confirmation_data['verification_status'],
-            'confirmation_data': confirmation_data
-        }
-
-# ===============================
-# DEMONSTRATION OF ALL 5 IMPLEMENTATIONS
-# ===============================
+            return {
+                'confirmation_valid': confirmation_valid,
+                'original_message_verified': confirmation_data['verification_status'],
+                'confirmation_data': confirmation_data
+            }
+            
+        except Exception as e:
+            print(f'Error processing confirmation: {e}')
+            return {
+                'confirmation_valid': False,
+                'error': str(e),
+                'confirmation_data': {}
+            }
 
 def demonstrate_all_implementations():
-    """
-    Comprehensive demonstration of all five implementations
-    Shows each requirement working independently and together
-    """
     print('=' * 80)
     print('    COMPREHENSIVE DEMONSTRATION: ALL 5 IMPLEMENTATIONS')
-    print('    (Updated with Improved RLE Implementation)')
     print('=' * 80)
 
-    # Setup network and people
     network = CommunicationNetwork()
 
     people = [
@@ -948,21 +771,16 @@ def demonstrate_all_implementations():
     for person in people:
         network.add_person(person)
 
-    # Create network connections
-    people[0].add_connection(people[1])  # Alice <-> Bob
-    people[1].add_connection(people[2])  # Bob <-> Charlie
-    people[2].add_connection(people[3])  # Charlie <-> Diana
-    people[1].add_connection(people[4])  # Bob <-> Eve
-    people[4].add_connection(people[3])  # Eve <-> Diana
+    people[0].add_connection(people[1])
+    people[1].add_connection(people[2])
+    people[2].add_connection(people[3])
+    people[1].add_connection(people[4])
+    people[4].add_connection(people[3])
 
     print(f'\n📡 Network setup complete: {len(people)} people with connections')
     print('Network topology: Alice <-> Bob <-> Charlie <-> Diana')
     print('                         ↕               ↗')
     print('                        Eve  <-----------')
-
-    # ===============================
-    # IMPLEMENTATION 1 DEMO - UPDATED RLE
-    # ===============================
 
     print('\n' + '=' * 60)
     print('TESTING IMPLEMENTATION 1: UPDATED RUN-LENGTH ENCODING')
@@ -983,16 +801,16 @@ def demonstrate_all_implementations():
     print(f'✅ Length validation: {"PASSED" if len(decoded1) == received_msg1.metadata["original_length"] else "FAILED"}')
 
     test_cases = [
-        'aaaa',  # Simple repetition
-        'abcd',  # No repetition
-        'aaabbbccc',  # Multiple repetitions
-        'a',  # Single character
-        ''  # Empty string (if handled)
+        'aaaa',
+        'abcd',
+        'aaabbbccc',
+        'a',
+        ''
     ]
 
     print('\n🧪 Testing RLE edge cases:')
     for i, test_msg in enumerate(test_cases):
-        if test_msg:  # Skip empty string for now
+        if test_msg:
             try:
                 print(f'   Test {i+1}: "{test_msg}"')
                 rle_result = run_length_encoding(test_msg)
@@ -1002,17 +820,12 @@ def demonstrate_all_implementations():
             except Exception as e:
                 print(f'   Result: ERROR - {e}')
 
-    # ===============================
-    # IMPLEMENTATION 2 DEMO
-    # ===============================
-
     print('\n' + '=' * 60)
     print('TESTING IMPLEMENTATION 2: FFT LOSSY COMPRESSION')
     print('=' * 60)
 
     message2 = 'Hello World! This message will become blurry with fine details lost through FFT compression.'
 
-    # Test different loss levels as specified by sender
     loss_levels = [0.2, 0.5, 0.8]
 
     for loss_level in loss_levels:
@@ -1025,14 +838,9 @@ def demonstrate_all_implementations():
         received_msg2 = next((m for m in network.people['alice'].messages if m.metadata['message_id'] == msg_id2), None)
         decoded2 = FFTLossyCompressionImplementation.receive_message(received_msg2)
 
-        # Calculate similarity to show "blurry" effect
         similarity = calculate_similarity(message2, decoded2)
         print(f'✅ Blurry effect achieved: {"YES" if similarity < 1.0 else "NO"} ({similarity * 100:.1f}% similarity)')
         print(f'✅ Metadata specifies original length: {received_msg2.metadata["original_message_length"]} chars')
-
-    # ===============================
-    # IMPLEMENTATION 3 DEMO
-    # ===============================
 
     print('\n' + '=' * 60)
     print('TESTING IMPLEMENTATION 3: RSA ENCRYPTION')
@@ -1048,10 +856,6 @@ def demonstrate_all_implementations():
 
     print(f'✅ Implementation 3 Success: {"PASSED" if decoded3 == message3 else "FAILED"}')
     print(f'✅ Both parties have public/private keys: {received_msg3.metadata["sender_has_keys"] and received_msg3.metadata["receiver_has_keys"]}')
-
-    # ===============================
-    # IMPLEMENTATION 4 DEMO
-    # ===============================
 
     print('\n' + '=' * 60)
     print('TESTING IMPLEMENTATION 4: RSA MESSAGE SIGNING')
@@ -1069,15 +873,10 @@ def demonstrate_all_implementations():
     print(f'✅ Signature is RSA-encrypted hash: {received_msg4.metadata["signature_method"] == "RSA-encrypted-hash"}')
     print(f'✅ Receiver decrypted hash and confirmed match: {verification_result["verified"]}')
 
-    # ===============================
-    # IMPLEMENTATION 5 DEMO
-    # ===============================
-
     print('\n' + '=' * 60)
     print('TESTING IMPLEMENTATION 5: SIGNED CONFIRMATIONS')
     print('=' * 60)
 
-    # Send confirmation back to Diana from Alice
     confirmation_msg_id = SignedConfirmationImplementation.send_confirmation(
         network, 'alice', 'diana', received_msg4, verification_result
     )
@@ -1090,10 +889,6 @@ def demonstrate_all_implementations():
     print(f'✅ Includes original hash: {"YES" if confirmation_msg.metadata.get("original_hash") else "NO"}')
     print(f'✅ Includes hash of returned message: {"YES" if confirmation_msg.metadata.get("hash_of_returned_message") else "NO"}')
     print(f'✅ Includes encrypted hash of returned message: {"YES" if confirmation_msg.metadata.get("encrypted_hash_of_returned_message") else "NO"}')
-
-    # ===============================
-    # FINAL SUMMARY
-    # ===============================
 
     print('\n' + '=' * 80)
     print('    FINAL SUMMARY: ALL 5 IMPLEMENTATIONS (UPDATED)')
@@ -1142,7 +937,6 @@ def demonstrate_all_implementations():
     print(f'    OVERALL RESULT: {"🎉 ALL IMPLEMENTATIONS SUCCESSFUL" if all_passed else "⚠️ SOME IMPLEMENTATIONS NEED REVIEW"}')
     print('=' * 80)
 
-    # Network statistics
     print(f'\n📈 Network Statistics:')
     print(f'   • Total messages sent: {len(network.message_history)}')
     print(f'   • People in network: {len(network.people)}')
@@ -1164,7 +958,6 @@ def demonstrate_all_implementations():
     for msg_type, count in type_counts.items():
         print(f'     - {msg_type}: {count} message(s)')
 
-    # RLE-specific statistics
     print(f'\n🔤 Updated RLE Implementation Features:')
     print(f'   • Max consecutive character limit: 9 (prevents overflow)')
     print(f'   • Validation: Length verification enabled')
@@ -1182,9 +975,6 @@ def demonstrate_all_implementations():
     }
 
 def calculate_similarity(str1, str2):
-    """
-    Utility function to calculate string similarity
-    """
     max_length = max(len(str1), len(str2))
     if max_length == 0:
         return 1.0
@@ -1198,12 +988,7 @@ def calculate_similarity(str1, str2):
 
     return matches / max_length
 
-# ===============================
-# INDIVIDUAL IMPLEMENTATION TESTING FUNCTIONS
-# ===============================
-
 def test_implementation_1():
-    """Test Implementation 1: Updated Run-Length Encoding"""
     print('🔤 Testing Implementation 1: Updated Run-Length Encoding')
     network = CommunicationNetwork()
     alice = Person('alice', 'Alice')
@@ -1220,14 +1005,12 @@ def test_implementation_1():
     result = decoded == test_message
     print(f'   Result: {"PASSED" if result else "FAILED"}')
     
-    # Additional validation test
     length_valid = len(decoded) == received.metadata['original_length']
     print(f'   Length validation: {"PASSED" if length_valid else "FAILED"}')
     
     return result and length_valid
 
 def test_implementation_2():
-    """Test Implementation 2: FFT Lossy Compression"""
     print('🌊 Testing Implementation 2: FFT Lossy Compression')
     network = CommunicationNetwork()
     alice = Person('alice', 'Alice')
@@ -1246,7 +1029,6 @@ def test_implementation_2():
     return has_original_length
 
 def test_implementation_3():
-    """Test Implementation 3: RSA Encryption"""
     print('🔒 Testing Implementation 3: RSA Encryption')
     network = CommunicationNetwork()
     alice = Person('alice', 'Alice')
@@ -1266,7 +1048,6 @@ def test_implementation_3():
     return result
 
 def test_implementation_4():
-    """Test Implementation 4: RSA Message Signing"""
     print('✍️ Testing Implementation 4: RSA Message Signing')
     network = CommunicationNetwork()
     alice = Person('alice', 'Alice')
@@ -1285,7 +1066,6 @@ def test_implementation_4():
     return result
 
 def test_implementation_5():
-    """Test Implementation 5: Signed Confirmations"""
     print('📋 Testing Implementation 5: Signed Confirmations')
     network = CommunicationNetwork()
     alice = Person('alice', 'Alice')
@@ -1294,13 +1074,11 @@ def test_implementation_5():
     network.add_person(alice)
     network.add_person(bob)
 
-    # First send a signed message
     test_message = 'Message to confirm'
     msg_id = RSAMessageSigningImplementation.send_message(network, 'alice', 'bob', test_message)
     received = next((m for m in network.people['bob'].messages if m.metadata['message_id'] == msg_id), None)
     verification_result = RSAMessageSigningImplementation.receive_message(received)
 
-    # Then send confirmation
     confirm_id = SignedConfirmationImplementation.send_confirmation(network, 'bob', 'alice', received, verification_result)
     confirmation = next((m for m in network.people['alice'].messages if m.metadata['message_id'] == confirm_id), None)
     confirm_result = SignedConfirmationImplementation.receive_confirmation(confirmation)
@@ -1314,16 +1092,9 @@ def test_implementation_5():
     print(f'   Result: {"PASSED" if result else "FAILED"}')
     return result
 
-# ===============================
-# STANDALONE RLE TESTING FUNCTION
-# ===============================
-
 def test_updated_rle_function():
-    """
-    Standalone test for your updated RLE function
-    """
     print('\n' + '=' * 60)
-    print('TESTING YOUR UPDATED RLE FUNCTION STANDALONE')
+    print('TESTING UPDATED RLE FUNCTION STANDALONE')
     print('=' * 60)
 
     test_cases = [
@@ -1343,7 +1114,6 @@ def test_updated_rle_function():
             print(f'\n🧪 Testing: {description}')
             print(f'   Input: "{test_input}"')
             
-            # Encode
             encoded_result = run_length_encoding(test_input)
             encoded_message = encoded_result['message_body']
             metadata = encoded_result['metadata']
@@ -1351,12 +1121,10 @@ def test_updated_rle_function():
             print(f'   Encoded: "{encoded_message}"')
             print(f'   Compression: {len(test_input)} → {len(encoded_message)} chars')
             
-            # Decode
             decoded_result = run_length_encoding(encoded_result)
             
             print(f'   Decoded: "{decoded_result}"')
             
-            # Verify
             success = decoded_result == test_input
             length_check = len(decoded_result) == metadata['original_length']
             
@@ -1373,20 +1141,12 @@ def test_updated_rle_function():
     print(f'\n📊 Overall RLE Function Test: {"✅ ALL PASSED" if all_passed else "❌ SOME FAILED"}')
     return all_passed
 
-# ===============================
-# MAIN EXECUTION
-# ===============================
-
 if __name__ == "__main__":
-    print('🚀 Starting demonstration of all 5 implementations with updated RLE...\n')
 
-    # Test the standalone RLE function first
     test_updated_rle_function()
 
-    # Run the comprehensive demonstration
     results = demonstrate_all_implementations()
 
-    # Optional: Run individual tests
     print('\n\n🔧 Running individual implementation tests...')
     print('-' * 50)
 
@@ -1408,16 +1168,13 @@ if __name__ == "__main__":
     print('     (Updated with Enhanced RLE Algorithm)')
     print('=' * 80)
 
-# Example usage of the standalone RLE function:
 if __name__ == "__main__":
     print('\n' + '=' * 40)
-    print('EXAMPLE USAGE OF YOUR RLE FUNCTION:')
+    print('EXAMPLE USAGE OF RLE FUNCTION:')
     print('=' * 40)
     
-    # Example 1: Encoding
     msg = run_length_encoding("aaaabbbcccc")
     print(f'Encoded result: {msg}')
     
-    # Example 2: Decoding  
     original = run_length_encoding(msg)
     print(f'Decoded result: "{original}"')
